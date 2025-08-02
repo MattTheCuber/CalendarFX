@@ -74,8 +74,6 @@ public class EntryPopOverContentPane extends PopOverContentPane {
 
         setExpandedPane(detailsPane);
 
-        popOver.setAutoHide(false);
-
         entry.fullDayProperty().addListener(weakFullDayListener);
         popOver.setOnHidden(evt -> entry.fullDayProperty().removeListener(weakFullDayListener));
 

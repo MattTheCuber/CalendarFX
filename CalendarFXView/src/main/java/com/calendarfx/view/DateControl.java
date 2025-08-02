@@ -755,6 +755,7 @@ public abstract class DateControl extends CalendarFXControl {
     }
 
     private PopOver entryPopOver;
+    private Entry<?> currentPopoverEntry;
 
     private void showEntryDetails(Entry<?> entry, Node node, Node owner, double screenY) {
         Callback<EntryDetailsPopOverContentParameter, Node> contentCallback = getEntryDetailsPopOverContentCallback();
@@ -762,10 +763,17 @@ public abstract class DateControl extends CalendarFXControl {
             throw new IllegalStateException("No content callback found for entry popover");
         }
 
+        // Prevent recreating popover if already showing the same entry
+        if (entryPopOver != null && entryPopOver.isShowing() && Objects.equals(currentPopoverEntry, entry)) {
+            return;
+        }
+
         if (entryPopOver == null || entryPopOver.isDetached()) {
             entryPopOver = new PopOver();
             entryPopOver.setAnimated(false); // important, otherwise too many side effects
         }
+        
+        currentPopoverEntry = entry;
 
         EntryDetailsPopOverContentParameter param = new EntryDetailsPopOverContentParameter(entryPopOver, this, owner, entry);
         Node content = contentCallback.call(param);
@@ -786,6 +794,9 @@ public abstract class DateControl extends CalendarFXControl {
         Point2D position = ViewHelper.findPopOverArrowPosition(node, screenY, entryPopOver.getArrowSize(), location);
 
         entryPopOver.show(owner, position.getX(), position.getY());
+        
+        // Clear current entry when popover is hidden
+        entryPopOver.setOnHidden(evt -> currentPopoverEntry = null);
     }
 
     /**
