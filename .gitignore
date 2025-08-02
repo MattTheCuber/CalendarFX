@@ -6,3 +6,8 @@
 CalendarFXApp/.classpath
 *.classpath
 *.log
+
+# User patches and examples
+CalendarFXPopoverFix*.java
+CalendarFXPopoverFixExample.java
+CalendarFXPopoverPatch_README.md
