@@ -74,11 +74,8 @@ public class EntryPopOverContentPane extends PopOverContentPane {
 
         setExpandedPane(detailsPane);
 
-        // Disable auto-hide when user types in time fields, re-enable on focus lost
-        EntryDetailsView entryDetails = (EntryDetailsView) details;
-        entryDetails.getStartTimeField().setOnKeyPressed(e -> popOver.setAutoHide(false));
-        entryDetails.getEndTimeField().setOnKeyPressed(e -> popOver.setAutoHide(false));
-        focusedProperty().addListener((obs, oldVal, newVal) -> { if (!newVal) popOver.setAutoHide(true); });
+        // Disable auto-hide for time field editing
+        popOver.setAutoHide(false);
 
         entry.fullDayProperty().addListener(weakFullDayListener);
         popOver.setOnHidden(evt -> entry.fullDayProperty().removeListener(weakFullDayListener));
