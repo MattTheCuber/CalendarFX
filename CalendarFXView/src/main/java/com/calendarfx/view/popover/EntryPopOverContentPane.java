@@ -74,7 +74,6 @@ public class EntryPopOverContentPane extends PopOverContentPane {
 
         setExpandedPane(detailsPane);
 
-        // Disable auto-hide for time field editing
         popOver.setAutoHide(false);
 
         entry.fullDayProperty().addListener(weakFullDayListener);
