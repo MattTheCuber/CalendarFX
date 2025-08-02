@@ -21,12 +21,8 @@ import com.calendarfx.view.CalendarView;
 import com.calendarfx.view.DateControl;
 import com.calendarfx.view.DayViewBase;
 import com.calendarfx.view.Messages;
-import com.calendarfx.view.TimeField;
 import javafx.beans.InvalidationListener;
 import javafx.beans.WeakInvalidationListener;
-import javafx.scene.Node;
-import javafx.scene.Parent;
-import javafx.scene.control.TextField;
 import javafx.util.Duration;
 import org.controlsfx.control.PopOver;
 
@@ -78,8 +74,11 @@ public class EntryPopOverContentPane extends PopOverContentPane {
 
         setExpandedPane(detailsPane);
 
-        // Add focus tracking for time fields to prevent premature popover closing
-        addTimeFieldFocusTracking(details);
+        // Disable auto-hide when user types in time fields, re-enable on focus lost
+        EntryDetailsView entryDetails = (EntryDetailsView) details;
+        entryDetails.getStartTimeField().setOnKeyPressed(e -> popOver.setAutoHide(false));
+        entryDetails.getEndTimeField().setOnKeyPressed(e -> popOver.setAutoHide(false));
+        focusedProperty().addListener((obs, oldVal, newVal) -> { if (!newVal) popOver.setAutoHide(true); });
 
         entry.fullDayProperty().addListener(weakFullDayListener);
         popOver.setOnHidden(evt -> entry.fullDayProperty().removeListener(weakFullDayListener));
@@ -97,76 +96,5 @@ public class EntryPopOverContentPane extends PopOverContentPane {
 
     public final Entry<?> getEntry() {
         return entry;
-    }
-
-    /**
-     * Adds focus tracking to time fields to prevent the popover from closing
-     * while the user is actively editing time values.
-     */
-    private void addTimeFieldFocusTracking(EntryDetailsView details) {
-        setupTimeFieldFocusTracking(details.getStartTimeField());
-        setupTimeFieldFocusTracking(details.getEndTimeField());
-    }
-
-    private void setupTimeFieldFocusTracking(TimeField timeField) {
-        // TimeField is a composite control with internal TextField components
-        // We need to find and listen to those internal components
-        javafx.application.Platform.runLater(() -> {
-            findAndSetupTextFieldListeners(timeField);
-        });
-    }
-    
-    private void findAndSetupTextFieldListeners(Node node) {
-        if (node instanceof TextField) {
-            setupTextFieldFocusListener((TextField) node);
-        } else if (node instanceof Parent) {
-            Parent parent = (Parent) node;
-            for (Node child : parent.getChildrenUnmodifiable()) {
-                findAndSetupTextFieldListeners(child);
-            }
-        }
-    }
-    
-    private void setupTextFieldFocusListener(TextField textField) {
-        textField.focusedProperty().addListener((observable, oldValue, newValue) -> {
-            if (newValue) {
-                // TextField gained focus - temporarily disable auto-hide
-                popOver.setAutoHide(false);
-            } else {
-                // TextField lost focus - re-enable auto-hide after ensuring no other time field has focus
-                javafx.application.Platform.runLater(() -> {
-                    // Check if any time field still has focus before re-enabling auto-hide
-                    boolean anyTimeFieldFocused = hasAnyTimeFieldFocus();
-                    
-                    if (!anyTimeFieldFocused) {
-                        popOver.setAutoHide(true);
-                    }
-                });
-            }
-        });
-    }
-    
-    private boolean hasAnyTimeFieldFocus() {
-        // Look up the EntryDetailsView from the expanded pane content
-        if (getExpandedPane() != null && getExpandedPane().getContent() instanceof EntryDetailsView) {
-            EntryDetailsView detailsView = (EntryDetailsView) getExpandedPane().getContent();
-            return hasTextFieldFocus(detailsView.getStartTimeField()) || 
-                   hasTextFieldFocus(detailsView.getEndTimeField());
-        }
-        return false;
-    }
-    
-    private boolean hasTextFieldFocus(Node node) {
-        if (node instanceof TextField) {
-            return node.isFocused();
-        } else if (node instanceof Parent) {
-            Parent parent = (Parent) node;
-            for (Node child : parent.getChildrenUnmodifiable()) {
-                if (hasTextFieldFocus(child)) {
-                    return true;
-                }
-            }
-        }
-        return false;
     }
 }
