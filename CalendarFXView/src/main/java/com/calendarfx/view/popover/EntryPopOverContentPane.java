@@ -25,10 +25,10 @@ import com.calendarfx.view.TimeField;
 import javafx.beans.InvalidationListener;
 import javafx.beans.WeakInvalidationListener;
 import javafx.scene.Node;
+import javafx.scene.Parent;
+import javafx.scene.control.TextField;
 import javafx.util.Duration;
 import org.controlsfx.control.PopOver;
-
-import java.util.Objects;
 
 import java.util.Objects;
 
@@ -109,22 +109,34 @@ public class EntryPopOverContentPane extends PopOverContentPane {
     }
 
     private void setupTimeFieldFocusTracking(TimeField timeField) {
-        timeField.focusedProperty().addListener((observable, oldValue, newValue) -> {
+        // TimeField is a composite control with internal TextField components
+        // We need to find and listen to those internal components
+        javafx.application.Platform.runLater(() -> {
+            findAndSetupTextFieldListeners(timeField);
+        });
+    }
+    
+    private void findAndSetupTextFieldListeners(Node node) {
+        if (node instanceof TextField) {
+            setupTextFieldFocusListener((TextField) node);
+        } else if (node instanceof Parent) {
+            Parent parent = (Parent) node;
+            for (Node child : parent.getChildrenUnmodifiable()) {
+                findAndSetupTextFieldListeners(child);
+            }
+        }
+    }
+    
+    private void setupTextFieldFocusListener(TextField textField) {
+        textField.focusedProperty().addListener((observable, oldValue, newValue) -> {
             if (newValue) {
-                // Time field gained focus - temporarily disable auto-hide
+                // TextField gained focus - temporarily disable auto-hide
                 popOver.setAutoHide(false);
             } else {
-                // Time field lost focus - re-enable auto-hide after ensuring no other time field has focus
+                // TextField lost focus - re-enable auto-hide after ensuring no other time field has focus
                 javafx.application.Platform.runLater(() -> {
                     // Check if any time field still has focus before re-enabling auto-hide
-                    boolean anyTimeFieldFocused = false;
-                    
-                    // Look up the EntryDetailsView from the expanded pane content
-                    if (getExpandedPane() != null && getExpandedPane().getContent() instanceof EntryDetailsView) {
-                        EntryDetailsView detailsView = (EntryDetailsView) getExpandedPane().getContent();
-                        anyTimeFieldFocused = detailsView.getStartTimeField().isFocused() || 
-                                              detailsView.getEndTimeField().isFocused();
-                    }
+                    boolean anyTimeFieldFocused = hasAnyTimeFieldFocus();
                     
                     if (!anyTimeFieldFocused) {
                         popOver.setAutoHide(true);
@@ -132,5 +144,29 @@ public class EntryPopOverContentPane extends PopOverContentPane {
                 });
             }
         });
+    }
+    
+    private boolean hasAnyTimeFieldFocus() {
+        // Look up the EntryDetailsView from the expanded pane content
+        if (getExpandedPane() != null && getExpandedPane().getContent() instanceof EntryDetailsView) {
+            EntryDetailsView detailsView = (EntryDetailsView) getExpandedPane().getContent();
+            return hasTextFieldFocus(detailsView.getStartTimeField()) || 
+                   hasTextFieldFocus(detailsView.getEndTimeField());
+        }
+        return false;
+    }
+    
+    private boolean hasTextFieldFocus(Node node) {
+        if (node instanceof TextField) {
+            return node.isFocused();
+        } else if (node instanceof Parent) {
+            Parent parent = (Parent) node;
+            for (Node child : parent.getChildrenUnmodifiable()) {
+                if (hasTextFieldFocus(child)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }
