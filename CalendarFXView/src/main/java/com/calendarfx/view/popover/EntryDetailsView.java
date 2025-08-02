@@ -245,6 +245,14 @@ public class EntryDetailsView extends EntryPopOverPane {
         return entry;
     }
 
+    public TimeField getStartTimeField() {
+        return startTimeField;
+    }
+
+    public TimeField getEndTimeField() {
+        return endTimeField;
+    }
+
     private void updateSummaryLabel(Entry<?> entry) {
         String rule = entry.getRecurrenceRule();
         if (rule != null && !rule.trim().equals("")) {

@@ -21,10 +21,14 @@ import com.calendarfx.view.CalendarView;
 import com.calendarfx.view.DateControl;
 import com.calendarfx.view.DayViewBase;
 import com.calendarfx.view.Messages;
+import com.calendarfx.view.TimeField;
 import javafx.beans.InvalidationListener;
 import javafx.beans.WeakInvalidationListener;
+import javafx.scene.Node;
 import javafx.util.Duration;
 import org.controlsfx.control.PopOver;
+
+import java.util.Objects;
 
 import java.util.Objects;
 
@@ -74,6 +78,9 @@ public class EntryPopOverContentPane extends PopOverContentPane {
 
         setExpandedPane(detailsPane);
 
+        // Add focus tracking for time fields to prevent premature popover closing
+        addTimeFieldFocusTracking(details);
+
         entry.fullDayProperty().addListener(weakFullDayListener);
         popOver.setOnHidden(evt -> entry.fullDayProperty().removeListener(weakFullDayListener));
 
@@ -90,5 +97,40 @@ public class EntryPopOverContentPane extends PopOverContentPane {
 
     public final Entry<?> getEntry() {
         return entry;
+    }
+
+    /**
+     * Adds focus tracking to time fields to prevent the popover from closing
+     * while the user is actively editing time values.
+     */
+    private void addTimeFieldFocusTracking(EntryDetailsView details) {
+        setupTimeFieldFocusTracking(details.getStartTimeField());
+        setupTimeFieldFocusTracking(details.getEndTimeField());
+    }
+
+    private void setupTimeFieldFocusTracking(TimeField timeField) {
+        timeField.focusedProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue) {
+                // Time field gained focus - temporarily disable auto-hide
+                popOver.setAutoHide(false);
+            } else {
+                // Time field lost focus - re-enable auto-hide after ensuring no other time field has focus
+                javafx.application.Platform.runLater(() -> {
+                    // Check if any time field still has focus before re-enabling auto-hide
+                    boolean anyTimeFieldFocused = false;
+                    
+                    // Look up the EntryDetailsView from the expanded pane content
+                    if (getExpandedPane() != null && getExpandedPane().getContent() instanceof EntryDetailsView) {
+                        EntryDetailsView detailsView = (EntryDetailsView) getExpandedPane().getContent();
+                        anyTimeFieldFocused = detailsView.getStartTimeField().isFocused() || 
+                                              detailsView.getEndTimeField().isFocused();
+                    }
+                    
+                    if (!anyTimeFieldFocused) {
+                        popOver.setAutoHide(true);
+                    }
+                });
+            }
+        });
     }
 }
