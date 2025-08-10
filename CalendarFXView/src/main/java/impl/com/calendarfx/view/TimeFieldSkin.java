@@ -23,7 +23,6 @@ import javafx.scene.control.Label;
 import javafx.scene.control.SkinBase;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextFormatter;
-import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.HBox;
 import javafx.util.StringConverter;
@@ -62,9 +61,11 @@ public class TimeFieldSkin extends SkinBase<TimeField> {
         TextFormatter<String> minuteFormatter = new TextFormatter<>(valueConverter, "0");
 
         hourField = new NumericTextField(23);
+        hourField.setOnKeyPressed(new RollingHandler(hourField, 23));
         hourField.setTextFormatter(hourFormatter);
 
         minuteField = new NumericTextField(59);
+        minuteField.setOnKeyPressed(new RollingHandler(minuteField, 59));
         minuteField.setTextFormatter(minuteFormatter);
 
         Label separator = new Label(":");
@@ -86,43 +87,15 @@ public class TimeFieldSkin extends SkinBase<TimeField> {
         updateFields();
 
         // Install the listener after setting the values, avoid unnecessary
-        // notifications - use focus listeners instead of text listeners to avoid
-        // premature updates while typing
+        // notifications
         InvalidationListener updateValueListener = it -> {
             if (!updatingTextFields) {
                 updateValue();
             }
         };
 
-        // Update value when fields lose focus, not on every text change
-        hourField.focusedProperty().addListener((obs, oldFocused, newFocused) -> {
-            if (!newFocused && !updatingTextFields) {
-                updateValue();
-            }
-        });
-        
-        minuteField.focusedProperty().addListener((obs, oldFocused, newFocused) -> {
-            if (!newFocused && !updatingTextFields) {
-                updateValue();
-            }
-        });
-        
-        // Also update value when user presses Enter
-        EventHandler<KeyEvent> enterKeyHandler = event -> {
-            if (event.getCode() == KeyCode.ENTER && !updatingTextFields) {
-                updateValue();
-            }
-        };
-        
-        hourField.setOnKeyPressed(event -> {
-            new RollingHandler(hourField, 23).handle(event);
-            enterKeyHandler.handle(event);
-        });
-        
-        minuteField.setOnKeyPressed(event -> {
-            new RollingHandler(minuteField, 59).handle(event);
-            enterKeyHandler.handle(event);
-        });
+        hourField.textProperty().addListener(updateValueListener);
+        minuteField.textProperty().addListener(updateValueListener);
     }
 
     private boolean updatingTextFields;
@@ -223,10 +196,6 @@ public class TimeFieldSkin extends SkinBase<TimeField> {
             } else {
                 field.setText(Integer.toString(value));
             }
-            // Update the value immediately when using arrow keys
-            if (!updatingTextFields) {
-                updateValue();
-            }
         }
 
         private void decrement() {
@@ -246,10 +215,6 @@ public class TimeFieldSkin extends SkinBase<TimeField> {
                 field.setText("0" + value);
             } else {
                 field.setText(Integer.toString(value));
-            }
-            // Update the value immediately when using arrow keys
-            if (!updatingTextFields) {
-                updateValue();
             }
         }
     }

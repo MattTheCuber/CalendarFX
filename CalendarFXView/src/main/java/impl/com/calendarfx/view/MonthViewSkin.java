@@ -20,6 +20,7 @@ import com.calendarfx.model.Calendar;
 import com.calendarfx.model.CalendarEvent;
 import com.calendarfx.model.CalendarSource;
 import com.calendarfx.model.Entry;
+import com.calendarfx.model.Interval;
 import com.calendarfx.util.LoggingDomain;
 import com.calendarfx.view.EntryViewBase.Position;
 import com.calendarfx.view.Messages;
@@ -203,9 +204,22 @@ public class MonthViewSkin extends DateControlSkin<MonthView> implements LoadDat
     @Override
     protected void entryIntervalChanged(CalendarEvent evt) {
         Entry<?> entry = evt.getEntry();
-
+        
         if (isRelevant(evt.getOldInterval()) || isRelevant(entry)) {
-            updateEntries("entry interval changed");
+            // Check if only time components changed (not dates)
+            Interval oldInterval = evt.getOldInterval();
+            Interval newInterval = entry.getInterval();
+            
+            boolean onlyTimeChanged = oldInterval != null && 
+                oldInterval.getStartDate().equals(newInterval.getStartDate()) &&
+                oldInterval.getEndDate().equals(newInterval.getEndDate()) &&
+                oldInterval.getZoneId().equals(newInterval.getZoneId());
+                
+            // For MonthView, we don't need to refresh entries if only time changed
+            // since MonthView typically doesn't display time details
+            if (!onlyTimeChanged) {
+                updateEntries("entry interval changed");
+            }
         }
     }
 
